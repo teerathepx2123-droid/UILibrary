@@ -2071,9 +2071,44 @@ local ClosureBindings = {
 				}),
 			})
 
-			-- คลิกที่ Title/SubTitle เพื่อคัดลอกลิงก์ (ถ้ามี Config.TitleLink)
+			-- Discord label แยกอยู่ขวามือ ไม่ชนกับ Title
 			if Config.TitleLink and Config.TitleLink ~= "" then
-				AddSignal(TitleTextButton.MouseButton1Click, function()
+				-- extract discord invite code
+				local linkText = Config.TitleLink
+				if string.find(linkText, "discord.gg/") then
+					linkText = "discord.gg/" .. string.match(linkText, "discord%.gg/(.+)")
+				end
+
+				local DiscordLabel = New("TextButton", {
+					Text = "🔗 " .. linkText,
+					FontFace = Font.new(
+						"rbxasset://fonts/families/GothamSSm.json",
+						Enum.FontWeight.Regular,
+						Enum.FontStyle.Normal
+					),
+					TextSize = 10,
+					TextXAlignment = Enum.TextXAlignment.Right,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					BackgroundTransparency = 0.85,
+					Size = UDim2.new(0, 0, 0, 20),
+					AutomaticSize = Enum.AutomaticSize.X,
+					Position = UDim2.new(1, -120, 0.5, 0),
+					AnchorPoint = Vector2.new(1, 0.5),
+					Parent = TitleBar.Frame,
+					ZIndex = 5,
+					ThemeTag = {
+						TextColor3 = "SubText",
+						BackgroundColor3 = "Element",
+					},
+				}, {
+					New("UICorner", { CornerRadius = UDim.new(0, 4) }),
+					New("UIPadding", {
+						PaddingLeft = UDim.new(0, 6),
+						PaddingRight = UDim.new(0, 6),
+					}),
+				})
+
+				AddSignal(DiscordLabel.MouseButton1Click, function()
 					local ok = pcall(function()
 						if setclipboard then
 							setclipboard(Config.TitleLink)
@@ -2083,8 +2118,8 @@ local ClosureBindings = {
 					end)
 					if ok and Library.Notify then
 						Library:Notify({
-							Title = "Copied",
-							Content = "Link copied to clipboard!",
+							Title = "Discord",
+							Content = "Link copied! " .. Config.TitleLink,
 							Duration = 3,
 						})
 					end
@@ -2318,7 +2353,7 @@ local ClosureBindings = {
 			})
 
 			local TabFrame = New("Frame", {
-				Size = UDim2.new(0, Config.TabWidth, 1, -TabY - 60),
+				Size = UDim2.new(0, Config.TabWidth, 1, -TabY - 8),
 				Position = UDim2.new(0, 12, 0, TabY),
 				BackgroundTransparency = 1,
 				ClipsDescendants = true,
@@ -2361,7 +2396,6 @@ local ClosureBindings = {
 				Window.ContainerHolder,
 				TabFrame,
 				ProfileFrame,
-				MapFrame,
 				ResizeStartFrame,
 			})
 
@@ -2835,11 +2869,14 @@ local ClosureBindings = {
 
 			local ButtonFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true)
 
+			-- รองรับ Icon แบบ custom หรือใช้ default
 			local iconImage = "rbxassetid://10734898355"
 			if Config.Icon and Config.Icon ~= "" then
+				-- รองรับทั้ง rbxassetid:// และ lucide icon name
 				if string.find(Config.Icon, "rbxasset") or string.find(Config.Icon, "http") then
 					iconImage = Config.Icon
 				else
+					-- lucide icon จาก assets
 					local ok, asset = pcall(function()
 						return require(Root.Assets).Icons[Config.Icon]
 					end)
@@ -3595,14 +3632,18 @@ local ClosureBindings = {
       		local posX = btnPos.X - 1
       		local posY = btnPos.Y + btnSize.Y - 5
 
+      		-- ถ้าล้นขวา ให้ชิดขวา
       		if posX + listSize.X > vp.X - 5 then
       			posX = vp.X - listSize.X - 5
       		end
+      		-- ถ้าล้นซ้าย
       		if posX < 5 then posX = 5 end
 
+      		-- ถ้าล้นล่าง ให้แสดงด้านบนปุ่มแทน
       		if posY + listSize.Y > vp.Y - 5 then
       			posY = btnPos.Y - listSize.Y + 5
       		end
+      		-- ถ้าล้นบน
       		if posY < 5 then posY = 5 end
 
       		DropdownHolderCanvas.Position = UDim2.fromOffset(posX, posY)
@@ -3631,8 +3672,8 @@ end
       	local TouchStartPos = nil
       	local TouchMoved = false
       	local TouchStartTime = 0
-      	local SCROLL_THRESHOLD = 8
-      	local TAP_TIME_LIMIT = 0.35
+      	local SCROLL_THRESHOLD = 8 -- px ที่ถือว่าเป็น scroll
+      	local TAP_TIME_LIMIT = 0.35 -- วินาที ที่ถือว่าเป็น tap
 
       	Creator.AddSignal(DropdownInner.InputBegan, function(Input)
       		if Input.UserInputType == Enum.UserInputType.Touch then
@@ -3654,6 +3695,7 @@ end
       	Creator.AddSignal(DropdownInner.InputEnded, function(Input)
       		if Input.UserInputType == Enum.UserInputType.Touch then
       			local elapsed = tick() - TouchStartTime
+      			-- เป็น tap ก็ต่อเมื่อ: ไม่ได้เลื่อน และ กดไม่นาน
       			if not TouchMoved and elapsed < TAP_TIME_LIMIT then
       				Dropdown:Open()
       			end
@@ -7934,4 +7976,4 @@ do
 			return LoadScript(MainModule)
 		end
 	end
-end
+end 
