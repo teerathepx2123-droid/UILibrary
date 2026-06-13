@@ -1998,13 +1998,13 @@ local ClosureBindings = {
 				New("TextLabel", {
 					RichText = true,
 					Text = Config.SubTitle,
-					TextTransparency = 0.35,
+					TextTransparency = 0.5,
 					FontFace = Font.new(
 						"rbxasset://fonts/families/GothamSSm.json",
 						Enum.FontWeight.Regular,
 						Enum.FontStyle.Normal
 					),
-					TextSize = 11,
+					TextSize = 10,
 					TextXAlignment = "Left",
 					TextYAlignment = "Center",
 					Size = UDim2.fromScale(0, 0),
@@ -2175,8 +2175,9 @@ local ClosureBindings = {
 			})
 
 			local MapFrame = New("Frame", {
-				Size = UDim2.new(0, 180, 0, 44),
+				Size = UDim2.new(0, Config.TabWidth - 24, 0, 44),
 				Position = UDim2.new(0, 12, 1, -56),
+				ClipsDescendants = true,
 				BackgroundTransparency = 0.4,
 				Visible = (Config.MapIcon ~= nil and Config.MapIcon ~= "") or (Config.MapName ~= nil and Config.MapName ~= ""),
 				ThemeTag = {
@@ -2317,7 +2318,7 @@ local ClosureBindings = {
 			})
 
 			local TabFrame = New("Frame", {
-				Size = UDim2.new(0, Config.TabWidth, 1, -TabY - 2),
+				Size = UDim2.new(0, Config.TabWidth, 1, -TabY - 60),
 				Position = UDim2.new(0, 12, 0, TabY),
 				BackgroundTransparency = 1,
 				ClipsDescendants = true,
@@ -2834,8 +2835,24 @@ local ClosureBindings = {
 
 			local ButtonFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, true)
 
+			local iconImage = "rbxassetid://10734898355"
+			if Config.Icon and Config.Icon ~= "" then
+				if string.find(Config.Icon, "rbxasset") or string.find(Config.Icon, "http") then
+					iconImage = Config.Icon
+				else
+					local ok, asset = pcall(function()
+						return require(Root.Assets).Icons[Config.Icon]
+					end)
+					if ok and asset then
+						iconImage = asset
+					else
+						iconImage = Config.Icon
+					end
+				end
+			end
+
 			local ButtonIco = New("ImageLabel", {
-				Image = "rbxassetid://10734898355",
+				Image = iconImage,
 				Size = UDim2.fromOffset(16, 16),
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -10, 0.5, 0),
@@ -3578,18 +3595,14 @@ local ClosureBindings = {
       		local posX = btnPos.X - 1
       		local posY = btnPos.Y + btnSize.Y - 5
 
-      		-- ถ้าล้นขวา ให้ชิดขวา
       		if posX + listSize.X > vp.X - 5 then
       			posX = vp.X - listSize.X - 5
       		end
-      		-- ถ้าล้นซ้าย
       		if posX < 5 then posX = 5 end
 
-      		-- ถ้าล้นล่าง ให้แสดงด้านบนปุ่มแทน
       		if posY + listSize.Y > vp.Y - 5 then
       			posY = btnPos.Y - listSize.Y + 5
       		end
-      		-- ถ้าล้นบน
       		if posY < 5 then posY = 5 end
 
       		DropdownHolderCanvas.Position = UDim2.fromOffset(posX, posY)
@@ -3617,18 +3630,22 @@ end
       
       	local TouchStartPos = nil
       	local TouchMoved = false
+      	local TouchStartTime = 0
+      	local SCROLL_THRESHOLD = 8
+      	local TAP_TIME_LIMIT = 0.35
 
       	Creator.AddSignal(DropdownInner.InputBegan, function(Input)
       		if Input.UserInputType == Enum.UserInputType.Touch then
       			TouchStartPos = Input.Position
       			TouchMoved = false
+      			TouchStartTime = tick()
       		end
       	end)
 
       	Creator.AddSignal(DropdownInner.InputChanged, function(Input)
       		if Input.UserInputType == Enum.UserInputType.Touch and TouchStartPos then
       			local Delta = (Input.Position - TouchStartPos).Magnitude
-      			if Delta > 10 then
+      			if Delta > SCROLL_THRESHOLD then
       				TouchMoved = true
       			end
       		end
@@ -3636,7 +3653,8 @@ end
 
       	Creator.AddSignal(DropdownInner.InputEnded, function(Input)
       		if Input.UserInputType == Enum.UserInputType.Touch then
-      			if not TouchMoved then
+      			local elapsed = tick() - TouchStartTime
+      			if not TouchMoved and elapsed < TAP_TIME_LIMIT then
       				Dropdown:Open()
       			end
       			TouchStartPos = nil
@@ -3644,6 +3662,7 @@ end
       		end
       	end)
 
+      	-- PC mouse click
       	Creator.AddSignal(DropdownInner.MouseButton1Click, function()
       		Dropdown:Open()
       	end)
@@ -7915,5 +7934,4 @@ do
 			return LoadScript(MainModule)
 		end
 	end
-
 end
