@@ -505,6 +505,9 @@ local ClosureBindings = {
 				SubTitle = Config.SubTitle,
 				TabWidth = Config.TabWidth,
 				Icon = Config.Icon,
+				TitleLink = Config.TitleLink,
+				MapIcon = Config.MapIcon,
+				MapName = Config.MapName,
 			})
 
 			Library.MinimizeKey = Config.MinimizeKey
@@ -1960,18 +1963,89 @@ local ClosureBindings = {
 				return Button
 			end
 
+			local HasIcon = Config.Icon ~= nil and Config.Icon ~= ""
+
+			local TitleTextButton = New("TextButton", {
+				Text = "",
+				BackgroundTransparency = 1,
+				AutomaticSize = Enum.AutomaticSize.X,
+				Size = UDim2.new(0, 0, 1, 0),
+			}, {
+				New("UIListLayout", {
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					FillDirection = Enum.FillDirection.Vertical,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+				}),
+				New("TextLabel", {
+					RichText = true,
+					Text = Config.Title,
+					FontFace = Font.new(
+						"rbxasset://fonts/families/GothamSSm.json",
+						Enum.FontWeight.Bold,
+						Enum.FontStyle.Normal
+					),
+					TextSize = 14,
+					TextXAlignment = "Left",
+					TextYAlignment = "Center",
+					Size = UDim2.fromScale(0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					BackgroundTransparency = 1,
+					LayoutOrder = 1,
+					ThemeTag = {
+						TextColor3 = "Text",
+					},
+				}),
+				New("TextLabel", {
+					RichText = true,
+					Text = Config.SubTitle,
+					TextTransparency = 0.35,
+					FontFace = Font.new(
+						"rbxasset://fonts/families/GothamSSm.json",
+						Enum.FontWeight.Regular,
+						Enum.FontStyle.Normal
+					),
+					TextSize = 11,
+					TextXAlignment = "Left",
+					TextYAlignment = "Center",
+					Size = UDim2.fromScale(0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					BackgroundTransparency = 1,
+					LayoutOrder = 2,
+					ThemeTag = {
+						TextColor3 = "SubText",
+					},
+				}),
+			})
+
 			TitleBar.Frame = New("Frame", {
 				Size = UDim2.new(1, 0, 0, 42),
 				BackgroundTransparency = 1,
 				Parent = Config.Parent,
 			}, {
 				New("Frame", {
-					Size = UDim2.new(1, -16, 1, 0),
-					Position = UDim2.new(0, 16, 0, 0),
-					BackgroundTransparency = 1,
+					AutomaticSize = Enum.AutomaticSize.X,
+					Size = UDim2.new(0, 0, 1, -10),
+					Position = UDim2.new(0, 10, 0, 5),
+					BackgroundTransparency = 0.4,
+					ThemeTag = {
+						BackgroundColor3 = "Element",
+					},
 				}, {
+					New("UICorner", { CornerRadius = UDim.new(0, 8) }),
+					New("UIStroke", {
+						Transparency = 0.4,
+						Thickness = 1,
+						ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+						ThemeTag = { Color = "ElementBorder" },
+					}),
+					New("UIPadding", {
+						PaddingLeft = UDim.new(0, 8),
+						PaddingRight = UDim.new(0, 10),
+						PaddingTop = UDim.new(0, 4),
+						PaddingBottom = UDim.new(0, 4),
+					}),
 					New("UIListLayout", {
-						Padding = UDim.new(0, 5),
+						Padding = UDim.new(0, 8),
 						FillDirection = Enum.FillDirection.Horizontal,
 						SortOrder = Enum.SortOrder.LayoutOrder,
 						VerticalAlignment = Enum.VerticalAlignment.Center,
@@ -1981,51 +2055,11 @@ local ClosureBindings = {
 						Image = Config.Icon or "",
 						Size = UDim2.fromOffset(28, 28),
 						BackgroundTransparency = 1,
-						Visible = false,
+						Visible = HasIcon,
 						LayoutOrder = 0,
-						ThemeTag = {
-							ImageColor3 = "Text",
-						},
+						ScaleType = Enum.ScaleType.Fit,
 					}),
-					New("TextLabel", {
-						RichText = true,
-						Text = Config.Title,
-						FontFace = Font.new(
-							"rbxasset://fonts/families/GothamSSm.json",
-							Enum.FontWeight.Regular,
-							Enum.FontStyle.Normal
-						),
-						TextSize = 12,
-						TextXAlignment = "Left",
-						TextYAlignment = "Center",
-						Size = UDim2.fromScale(0, 1),
-						AutomaticSize = Enum.AutomaticSize.X,
-						BackgroundTransparency = 1,
-						LayoutOrder = 1,
-						ThemeTag = {
-							TextColor3 = "Text",
-						},
-					}),
-					New("TextLabel", {
-						RichText = true,
-						Text = Config.SubTitle,
-						TextTransparency = 0.4,
-						FontFace = Font.new(
-							"rbxasset://fonts/families/GothamSSm.json",
-							Enum.FontWeight.Regular,
-							Enum.FontStyle.Normal
-						),
-						TextSize = 12,
-						TextXAlignment = "Left",
-						TextYAlignment = "Center",
-						Size = UDim2.fromScale(0, 1),
-						AutomaticSize = Enum.AutomaticSize.X,
-						BackgroundTransparency = 1,
-						LayoutOrder = 2,
-						ThemeTag = {
-							TextColor3 = "Text",
-						},
-					}),
+					TitleTextButton,
 				}),
 				New("Frame", {
 					BackgroundTransparency = 0.5,
@@ -2036,6 +2070,26 @@ local ClosureBindings = {
 					},
 				}),
 			})
+
+			-- คลิกที่ Title/SubTitle เพื่อคัดลอกลิงก์ (ถ้ามี Config.TitleLink)
+			if Config.TitleLink and Config.TitleLink ~= "" then
+				AddSignal(TitleTextButton.MouseButton1Click, function()
+					local ok = pcall(function()
+						if setclipboard then
+							setclipboard(Config.TitleLink)
+						elseif toclipboard then
+							toclipboard(Config.TitleLink)
+						end
+					end)
+					if ok and Library.Notify then
+						Library:Notify({
+							Title = "Copied",
+							Content = "Link copied to clipboard!",
+							Duration = 3,
+						})
+					end
+				end)
+			end
 
 			TitleBar.CloseButton = BarButton(Assets.Close, UDim2.new(1, -4, 0, 4), TitleBar.Frame, function()
 				Library.Window:Dialog({
@@ -2120,35 +2174,72 @@ local ClosureBindings = {
 				Position = UDim2.new(1, -20, 1, -20),
 			})
 
-			local LocalPlayer = game:GetService("Players").LocalPlayer
-
-			local HasLogo = Config.Icon ~= nil and Config.Icon ~= ""
-			local LogoHeight = HasLogo and 90 or 0
-			local ProfileY = 54 + LogoHeight
-			local SearchY = ProfileY + 58
-			local TabY = SearchY + 40
-
-			local LogoFrame = New("Frame", {
-				Size = UDim2.new(0, Config.TabWidth, 0, 80),
-				Position = UDim2.new(0, 12, 0, 54),
-				BackgroundTransparency = 0,
-				Visible = HasLogo,
+			local MapFrame = New("Frame", {
+				Size = UDim2.new(0, 180, 0, 44),
+				Position = UDim2.new(0, 12, 1, -56),
+				BackgroundTransparency = 0.4,
+				Visible = (Config.MapIcon ~= nil and Config.MapIcon ~= "") or (Config.MapName ~= nil and Config.MapName ~= ""),
 				ThemeTag = {
 					BackgroundColor3 = "Element",
 				},
 			}, {
-				New("UICorner", {
-					CornerRadius = UDim.new(0, 8),
+				New("UICorner", { CornerRadius = UDim.new(0, 8) }),
+				New("UIStroke", {
+					Transparency = 0.5,
+					Thickness = 1,
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+					ThemeTag = { Color = "ElementBorder" },
 				}),
 				New("ImageLabel", {
-					Image = Config.Icon or "",
-					Size = UDim2.new(1, -16, 1, -16),
-					Position = UDim2.fromScale(0.5, 0.5),
-					AnchorPoint = Vector2.new(0.5, 0.5),
+					Image = Config.MapIcon or "",
+					Size = UDim2.fromOffset(34, 34),
+					Position = UDim2.fromOffset(5, 5),
 					BackgroundTransparency = 1,
 					ScaleType = Enum.ScaleType.Fit,
+					Visible = Config.MapIcon ~= nil and Config.MapIcon ~= "",
+				}, {
+					New("UICorner", { CornerRadius = UDim.new(0, 6) }),
+				}),
+				New("TextLabel", {
+					RichText = true,
+					Text = "MAP",
+					TextTransparency = 0.4,
+					FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
+					TextSize = 10,
+					TextXAlignment = "Left",
+					TextYAlignment = "Center",
+					Size = UDim2.new(1, -50, 0, 12),
+					Position = UDim2.fromOffset(46, 7),
+					BackgroundTransparency = 1,
+					ThemeTag = {
+						TextColor3 = "SubText",
+					},
+				}),
+				New("TextLabel", {
+					RichText = true,
+					Text = Config.MapName or "",
+					FontFace = Font.new(
+						"rbxasset://fonts/families/GothamSSm.json",
+						Enum.FontWeight.SemiBold,
+						Enum.FontStyle.Normal
+					),
+					TextSize = 13,
+					TextXAlignment = "Left",
+					TextYAlignment = "Center",
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					Size = UDim2.new(1, -50, 0, 16),
+					Position = UDim2.fromOffset(46, 20),
+					BackgroundTransparency = 1,
+					ThemeTag = {
+						TextColor3 = "Text",
+					},
 				}),
 			})
+
+			local LocalPlayer = game:GetService("Players").LocalPlayer
+
+			local ProfileY = 54
+			local TabY = ProfileY + 58
 
 			local ProfileFrame = New("Frame", {
 				Size = UDim2.new(0, Config.TabWidth, 0, 50),
@@ -2211,57 +2302,6 @@ local ClosureBindings = {
 				}),
 			})
 
-			Window.SearchBox = New("TextBox", {
-				Size = UDim2.new(1, 0, 0, 32),
-				BackgroundTransparency = 0,
-				Text = "",
-				PlaceholderText = "Search...",
-				PlaceholderColor3 = Color3.fromRGB(140, 140, 140),
-				FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json"),
-				TextSize = 13,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextYAlignment = Enum.TextYAlignment.Center,
-				ClearTextOnFocus = false,
-				ThemeTag = {
-					TextColor3 = "Text",
-					BackgroundColor3 = "Element",
-				},
-			}, {
-				New("UICorner", {
-					CornerRadius = UDim.new(0, 8),
-				}),
-				New("UIStroke", {
-					Transparency = 0.5,
-					Thickness = 1,
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					ThemeTag = { Color = "InElementBorder" },
-				}),
-				New("UIPadding", {
-					PaddingLeft = UDim.new(0, 28),
-					PaddingRight = UDim.new(0, 8),
-				}),
-				New("ImageLabel", {
-					Image = "rbxassetid://10734943674",
-					Size = UDim2.fromOffset(13, 13),
-					Position = UDim2.new(0, 8, 0.5, 0),
-					AnchorPoint = Vector2.new(0, 0.5),
-					BackgroundTransparency = 1,
-					ImageTransparency = 0.4,
-					ZIndex = 2,
-					ThemeTag = {
-						ImageColor3 = "Text",
-					},
-				}),
-			})
-
-			local SearchFrame = New("Frame", {
-				Size = UDim2.new(0, Config.TabWidth, 0, 32),
-				Position = UDim2.new(0, 12, 0, SearchY),
-				BackgroundTransparency = 1,
-			}, {
-				Window.SearchBox,
-			})
-
 			Window.TabHolder = New("ScrollingFrame", {
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
@@ -2319,9 +2359,8 @@ local ClosureBindings = {
 				Window.TabDisplay,
 				Window.ContainerHolder,
 				TabFrame,
-				LogoFrame,
 				ProfileFrame,
-				SearchFrame,
+				MapFrame,
 				ResizeStartFrame,
 			})
 
@@ -2329,6 +2368,7 @@ local ClosureBindings = {
 				Title = Config.Title,
 				SubTitle = Config.SubTitle,
 				Icon = Config.Icon,
+				TitleLink = Config.TitleLink,
 				Parent = Window.Root,
 				Window = Window,
 			})
@@ -2579,20 +2619,6 @@ local ClosureBindings = {
 			function Window:AddTab(TabConfig)
 				return TabModule:New(TabConfig.Title, TabConfig.Icon, Window.TabHolder)
 			end
-
-			Creator.AddSignal(Window.SearchBox:GetPropertyChangedSignal("Text"), function()
-				local Query = string.lower(Window.SearchBox.Text or "")
-
-				for _, TabObject in next, TabModule.Tabs do
-					if Query == "" then
-						TabObject.Frame.Visible = true
-					else
-						TabObject.Frame.Visible = string.find(string.lower(TabObject.Name), Query, 1, true) ~= nil
-					end
-				end
-
-				Window.TabHolder.CanvasSize = UDim2.new(0, 0, 0, Window.TabHolder.UIListLayout.AbsoluteContentSize.Y)
-			end)
 
 			function Window:SelectTab(Tab)
 				TabModule:SelectTab(1)
@@ -4331,8 +4357,8 @@ end
 			local Dragging = false
 
 			local SliderFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false)
-			SliderFrame.DescLabel.Size = UDim2.new(1, -170, 0, 14)
-			SliderFrame.TitleLabel.Size = UDim2.new(1, -170, 0, 14)
+			SliderFrame.DescLabel.Size = UDim2.new(1, -190, 0, 14)
+			SliderFrame.TitleLabel.Size = UDim2.new(1, -190, 0, 14)
 
 			Slider.SetTitle = SliderFrame.SetTitle
 			Slider.SetDesc = SliderFrame.SetDesc
@@ -4375,8 +4401,8 @@ end
 				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 				BackgroundTransparency = 0.85,
 				Size = UDim2.new(0, 46, 0, 20),
-				Position = UDim2.new(1, -10, 0, 13),
-				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -126, 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
 				Parent = SliderFrame.Frame,
 				ZIndex = 2,
 				ThemeTag = {
@@ -4427,7 +4453,7 @@ end
 					CornerRadius = UDim.new(1, 0),
 				}),
 				New("UISizeConstraint", {
-					MaxSize = Vector2.new(150, math.huge),
+					MaxSize = Vector2.new(110, math.huge),
 				}),
 
 
@@ -4546,6 +4572,13 @@ end
 				},
 			})
 
+			local ToggleOuterStroke = New("UIStroke", {
+				Transparency = 0.35,
+				Thickness = 1.5,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				ThemeTag = { Color = "ElementBorder" },
+			})
+
 			local ToggleSlider = New("Frame", {
 				Size = UDim2.fromOffset(36, 18),
 				AnchorPoint = Vector2.new(1, 0.5),
@@ -4559,6 +4592,7 @@ end
 				New("UICorner", {
 					CornerRadius = UDim.new(0, 9),
 				}),
+				ToggleOuterStroke,
 				ToggleBorder,
 				ToggleCircle,
 			})
