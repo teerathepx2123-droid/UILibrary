@@ -111,7 +111,7 @@ local InterfaceManager = {} do
         ImageB.AnchorPoint = Vector2.new(0.5, 0.5)
         ImageB.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
         ImageB.BackgroundTransparency = 0.3
-        ImageB.Image = "rbxassetid://121587324056458"
+        ImageB.Image = "rbxassetid://83542549106889"
         ImageB.AutoButtonColor = false
         ImageB.ScaleType = Enum.ScaleType.Fit
 
