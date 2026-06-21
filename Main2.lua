@@ -3429,7 +3429,7 @@ local ClosureBindings = {
       		},
       	})
       	local DropdownInner = New("TextButton", {
-      		Size = UDim2.fromOffset(140, 32),
+      		Size = UDim2.fromOffset(120, 28),
       		Position = UDim2.new(1, -10, 0.5, 0),
       		AnchorPoint = Vector2.new(1, 0.5),
       		BackgroundTransparency = 0.9,
@@ -3457,7 +3457,7 @@ local ClosureBindings = {
       	})
       
       	local DropdownScrollFrame = New("ScrollingFrame", {
-      		Size = UDim2.new(1, -5, 1, -10),
+      		Size = UDim2.new(1, -5, 1, -8),
       		Position = UDim2.fromOffset(5, 5),
       		BackgroundTransparency = 1,
       		BottomImage = "rbxassetid://6889812791",
@@ -3473,7 +3473,7 @@ local ClosureBindings = {
       	})
       
       	local DropdownHolderFrame = New("Frame", {
-      		Size = UDim2.fromScale(1, 0.75),
+      		Size = UDim2.fromScale(1, 0.8),
       		ThemeTag = {
       			BackgroundColor3 = "DropdownHolder",
       		},
@@ -4555,7 +4555,7 @@ end
 			local ToggleCircle = New("ImageLabel", {
 				AnchorPoint = Vector2.new(0, 0.5),
 				Size = UDim2.fromOffset(16, 16),
-				Position = UDim2.new(0, 2, 0.5, -8),
+				Position = UDim2.new( 0, 1, 0.5, -8),
 				Image = "http://www.roblox.com/asset/?id=12266946128",
 				ImageTransparency = 0.5,
 				ThemeTag = {
@@ -4578,7 +4578,7 @@ end
 			})
 
 			local ToggleSlider = New("Frame", {
-				Size = UDim2.fromOffset(40, 20),
+				Size = UDim2.fromOffset(38, 20),
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -10, 0.5, 0),
 				Parent = ToggleFrame.Frame,
@@ -4609,7 +4609,7 @@ end
 				TweenService:Create(
 					ToggleCircle,
 					TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-					{ Position = UDim2.new(0, Toggle.Value and 18 or 2, 0.5, -8) }
+					{ Position = UDim2.new(0, Toggle.Value and 17 or 1, 0.5, -8) }
 				):Play()
 				TweenService:Create(
 					ToggleSlider,
