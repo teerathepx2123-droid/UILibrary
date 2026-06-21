@@ -3429,7 +3429,7 @@ local ClosureBindings = {
       		},
       	})
       	local DropdownInner = New("TextButton", {
-      		Size = UDim2.fromOffset(180, 35),
+      		Size = UDim2.fromOffset(200, 40),
       		Position = UDim2.new(1, -10, 0.5, 0),
       		AnchorPoint = Vector2.new(1, 0.5),
       		BackgroundTransparency = 0.9,
@@ -3471,65 +3471,39 @@ local ClosureBindings = {
       	}, {
       		DropdownListLayout,
       	})
+local dropdownScrolling = false
+local dropdownLastPos = 0
+local dropdownVelocity = 0
 
-		local DropdownOverlay = New("Frame", {
-			Size = UDim2.new(1000, 0, 1000, 0),
-			Position = UDim2.new(-500, 0, -500, 0),
-			BackgroundTransparency = 1,
-			Visible = false,
-			ZIndex = 98,
-			Parent = DropdownHolderFrame,
-		})
+Creator.AddSignal(DropdownScrollFrame.InputBegan, function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dropdownScrolling = true
+        dropdownLastPos = input.Position.Y
+        dropdownVelocity = 0
+    end
+end)
 
-		local SearchBG = New("Frame", {
-			Size = UDim2.new(1, -10, 0, 32),
-			Position = UDim2.fromOffset(5, 5),
-			BackgroundTransparency = 0.85,
-			BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-			Parent = DropdownHolderFrame,
-			Visible = false,
-		}, {
-			New("UICorner", { CornerRadius = UDim.new(0, 6) }),
-			New("UIStroke", {
-				Transparency = 0.8,
-				Color = Color3.fromRGB(120, 120, 120),
-			}),
-		})
+Creator.AddSignal(game:GetService("UserInputService").InputEnded, function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dropdownScrolling = false
+    end
+end)
 
-		local SearchIcon = New("ImageLabel", {
-			Image = "rbxassetid://10734943674",
-			Size = UDim2.fromOffset(14, 14),
-			Position = UDim2.new(0, 8, 0.5, 0),
-			AnchorPoint = Vector2.new(0, 0.5),
-			BackgroundTransparency = 1,
-			ImageTransparency = 0.1,
-			ImageColor3 = Color3.fromRGB(180, 180, 180),
-			Parent = SearchBG,
-			ZIndex = 5,
-		})
+Creator.AddSignal(game:GetService("UserInputService").InputChanged, function(input)
+    if dropdownScrolling and input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position.Y - dropdownLastPos
+        dropdownVelocity = delta
+        dropdownLastPos = input.Position.Y
+        
+        if delta ~= 0 then
+            DropdownScrollFrame.CanvasPosition = DropdownScrollFrame.CanvasPosition - Vector2.new(0, delta)
+        end
+    end
+end)
 
-		local SearchBox = New("TextBox", {
-			Size = UDim2.new(1, -28, 1, 0),
-			Position = UDim2.fromOffset(26, 0),
-			BackgroundTransparency = 1,
-			Text = "",
-			PlaceholderText = "Search...",
-			PlaceholderColor3 = Color3.fromRGB(130, 130, 130),
-			TextSize = 11,
-			Font = Enum.Font.Gotham,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextYAlignment = Enum.TextYAlignment.Center,
-			ClearTextOnFocus = false,
-			TextColor3 = Color3.fromRGB(235, 235, 235),
-			Parent = SearchBG,
-			ZIndex = 5,
-		})
-
-		DropdownScrollFrame.Position = UDim2.fromOffset(5, 40)
-		DropdownScrollFrame.Size = UDim2.new(1, -10, 1, -48)
       
       	local DropdownHolderFrame = New("Frame", {
-      		Size = UDim2.fromScale(1, 0.6),
+      		Size = UDim2.fromScale(1, 1),
       		ThemeTag = {
       			BackgroundColor3 = "DropdownHolder",
       		},
@@ -4410,6 +4384,46 @@ end
 
 			local Dragging = false
 
+local lastDragTime = 0
+local lastDragDist = 0
+local dragStartPos = nil
+
+Creator.AddSignal(SliderInner.InputBegan, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true
+        dragStartPos = input.Position
+        lastDragTime = tick()
+        lastDragDist = 0
+    end
+end)
+
+Creator.AddSignal(game:GetService("UserInputService").InputEnded, function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = false
+    end
+end)
+
+Creator.AddSignal(game:GetService("UserInputService").InputChanged, function(input)
+    if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if dragStartPos then
+            local delta = math.abs(input.Position.X - dragStartPos.X)
+            local TimeDiff = tick() - lastDragTime
+            if TimeDiff > 0 then
+                local velocity = delta / TimeDiff
+                lastDragDist = delta
+                if SliderInner:FindFirstChild("SliderDot") then
+                    local mouse = game:GetService("UserInputService"):GetMouseLocation()
+                    local relativeX = mouse.X - SliderInner.AbsolutePosition.X
+                    local clampedX = math.clamp(relativeX, 0, SliderInner.AbsoluteSize.X)
+                    local percentage = clampedX / SliderInner.AbsoluteSize.X
+                    local newValue = math.floor(Config.Min + (Config.Max - Config.Min) * percentage)
+                    Slider:SetValue(newValue)
+                end
+            end
+        end
+    end
+end)
+
 			local SliderFrame = require(Components.Element)(Config.Title, Config.Description, self.Container, false)
 			SliderFrame.DescLabel.Size = UDim2.new(1, -190, 0, 14)
 			SliderFrame.TitleLabel.Size = UDim2.new(1, -190, 0, 14)
@@ -4419,8 +4433,8 @@ end
 
 			local SliderDot = New("ImageLabel", {
 				AnchorPoint = Vector2.new(0, 0.5),
-				Position = UDim2.new(0, -10, 0.5, 0),
-				Size = UDim2.fromOffset(20, 20),
+				Position = UDim2.new(0, -11, 0.5, 0),
+				Size = UDim2.fromOffset(22, 22),
 				Image = "http://www.roblox.com/asset/?id=12266946128",
 				ThemeTag = {
 					ImageColor3 = "Accent",
@@ -4610,9 +4624,10 @@ end
 
 			local ToggleCircle = New("ImageLabel", {
 				AnchorPoint = Vector2.new(0, 0.5),
-				Size = UDim2.fromOffset(24, 24),
-				Position = UDim2.new(0, 2, 0.5, -12),
+				Size = UDim2.fromOffset(18, 18),
+				Position = UDim2.new(0, 2, 0.5, -9),
 				Image = "http://www.roblox.com/asset/?id=12266946128",
+				ImageColor3 = Color3.fromRGB(255, 255, 255),
 				ImageTransparency = 0.5,
 				ThemeTag = {
 					ImageColor3 = "ToggleSlider",
@@ -4634,7 +4649,7 @@ end
 			})
 
 			local ToggleSlider = New("Frame", {
-				Size = UDim2.fromOffset(50, 28),
+				Size = UDim2.fromOffset(42, 22),
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -10, 0.5, 0),
 				Parent = ToggleFrame.Frame,
@@ -4644,7 +4659,7 @@ end
 				},
 			}, {
 				New("UICorner", {
-					CornerRadius = UDim.new(0, 14),
+					CornerRadius = UDim.new(0, 11),
 				}),
 				ToggleOuterStroke,
 				ToggleBorder,
@@ -4661,11 +4676,11 @@ end
 				Toggle.Value = Value
 
 				Creator.OverrideTag(ToggleBorder, { Color = Toggle.Value and "Accent" or "ToggleSlider" })
-				Creator.OverrideTag(ToggleCircle, { ImageColor3 = Toggle.Value and "ToggleToggled" or "ToggleSlider" })
+				Creator.OverrideTag(ToggleCircle, { ImageColor3 = Toggle.Value and "Accent" or Color3.fromRGB(255, 255, 255) })
 				TweenService:Create(
 					ToggleCircle,
 					TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-					{ Position = UDim2.new(0, Toggle.Value and 23 or 2, 0.5, -12) }
+					{ Position = UDim2.new(0, Toggle.Value and 20 or 2, 0.5, -9) }
 				):Play()
 				TweenService:Create(
 					ToggleSlider,
