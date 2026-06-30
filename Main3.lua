@@ -402,6 +402,8 @@ local ClosureBindings = {
 			Version = "V0.0.2",
 
 			OpenFrames = {},
+			-- เก็บ Dropdown ที่เปิดอยู่ปัจจุบัน (อันเดียวเท่านั้น) ไว้ปิดให้อัตโนมัติ
+			-- ตอนมีการเปิด Dropdown อันใหม่ กันไม่ให้ Dropdown ซ้อนกันหลายอันพร้อมกัน
 			OpenDropdown = nil,
 			Options = {},
 			Themes = require(Root.Themes).Names,
@@ -410,7 +412,7 @@ local ClosureBindings = {
 			WindowFrame = nil,
 			Unloaded = false,
 
-			Theme = "Obsidian",
+			Theme = "Midnight",
 			DialogOpen = false,
 			UseAcrylic = false,
 			Acrylic = false,
@@ -493,21 +495,6 @@ local ClosureBindings = {
 			Config.Theme = Config.Theme or "Dark"
 			Config.MinimizeKey = Config.MinimizeKey or Enum.KeyCode.LeftControl
 			Config.Icon = Config.Icon or ""
-			if Config.Profile == nil then Config.Profile = true end
-			if Config.DropdownScrollFrame then
-				local dsc = Config.DropdownScrollFrame
-				Library.DropdownScrollConfig = {
-					MinWidth = dsc.MinWidth or 200,
-					MaxWidth = dsc.MaxWidth or 480,
-					MaxHeight = dsc.MaxHeight or 440,
-				}
-			else
-				Library.DropdownScrollConfig = {
-					MinWidth = 200,
-					MaxWidth = 480,
-					MaxHeight = 440,
-				}
-			end
 
 			if Library.Window then
 				print("You cannot create more than one window.")
@@ -524,7 +511,6 @@ local ClosureBindings = {
 				TitleLink = Config.TitleLink,
 				MapIcon = Config.MapIcon,
 				MapName = Config.MapName,
-				Profile = Config.Profile,
 			})
 
 			Library.MinimizeKey = Config.MinimizeKey
@@ -2088,6 +2074,7 @@ local ClosureBindings = {
 				}),
 			})
 
+			-- คลิกที่ Title/SubTitle เพื่อคัดลอกลิงก์ (ถ้ามี Config.TitleLink)
 			if Config.TitleLink and Config.TitleLink ~= "" then
 				AddSignal(TitleTextButton.MouseButton1Click, function()
 					local ok = pcall(function()
@@ -2254,14 +2241,12 @@ local ClosureBindings = {
 
 			local LocalPlayer = game:GetService("Players").LocalPlayer
 
-			local ShowProfile = Config.Profile ~= false
 			local ProfileY = 54
-			local TabY = ShowProfile and (ProfileY + 58) or ProfileY
+			local TabY = ProfileY + 58
 
 			local ProfileFrame = New("Frame", {
 				Size = UDim2.new(0, Config.TabWidth, 0, 50),
 				Position = UDim2.new(0, 12, 0, ProfileY),
-				Visible = ShowProfile,
 				BackgroundTransparency = 0,
 				ThemeTag = {
 					BackgroundColor3 = "Element",
@@ -3475,205 +3460,190 @@ local ClosureBindings = {
       	})
       
       	local DropdownScrollFrame = New("ScrollingFrame", {
-      		Size = UDim2.new(1, -5, 1, -10),
-      		Position = UDim2.fromOffset(5, 5),
+      		Size = UDim2.new(1, -6, 1, -10),
+      		Position = UDim2.fromOffset(3, 5),
       		BackgroundTransparency = 1,
       		BottomImage = "rbxassetid://6889812791",
       		MidImage = "rbxassetid://6889812721",
       		TopImage = "rbxassetid://6276641225",
       		ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255),
-      		ScrollBarImageTransparency = 0.95,
-      		ScrollBarThickness = 4,
+      		ScrollBarImageTransparency = 0.7,
+      		ScrollBarThickness = 3,
       		BorderSizePixel = 0,
       		CanvasSize = UDim2.fromScale(0, 0),
+      		ScrollingDirection = Enum.ScrollingDirection.Y,
+      		ElasticBehavior = Enum.ElasticBehavior.Never,
       	}, {
       		DropdownListLayout,
       	})
 
       	local DropdownIsScrolling = false
-      	local DropdownScrollTouchActive = false
-      	local LastCanvasPosition = DropdownScrollFrame.CanvasPosition
-      	local DropdownScrollLockTimer = nil
-
-      	Creator.AddSignal(DropdownScrollFrame:GetPropertyChangedSignal("CanvasPosition"), function()
-      		local Current = DropdownScrollFrame.CanvasPosition
-      		if DropdownScrollTouchActive and (Current - LastCanvasPosition).Magnitude > 1 then
-      			DropdownIsScrolling = true
-      			if DropdownScrollLockTimer then
-      				task.cancel(DropdownScrollLockTimer)
-      				DropdownScrollLockTimer = nil
-      			end
-      		end
-      		LastCanvasPosition = Current
-      	end)
+      	local _touchStartY = 0
+      	local _touchTotalDelta = 0
+      	local _touchActive = false
+      	local SCROLL_THRESHOLD = 12
 
       	Creator.AddSignal(UserInputService.InputBegan, function(Input)
       		if Input.UserInputType == Enum.UserInputType.Touch and Dropdown.Opened then
-      			DropdownScrollTouchActive = true
+      			_touchActive = true
+      			_touchStartY = Input.Position.Y
+      			_touchTotalDelta = 0
       			DropdownIsScrolling = false
-      			if DropdownScrollLockTimer then
-      				task.cancel(DropdownScrollLockTimer)
-      				DropdownScrollLockTimer = nil
+      		end
+      	end)
+
+      	Creator.AddSignal(UserInputService.InputChanged, function(Input)
+      		if Input.UserInputType == Enum.UserInputType.Touch and _touchActive then
+      			_touchTotalDelta = _touchTotalDelta + math.abs(Input.Position.Y - _touchStartY)
+      			_touchStartY = Input.Position.Y
+      			if _touchTotalDelta > SCROLL_THRESHOLD then
+      				DropdownIsScrolling = true
       			end
       		end
       	end)
 
       	Creator.AddSignal(UserInputService.InputEnded, function(Input)
       		if Input.UserInputType == Enum.UserInputType.Touch then
-      			DropdownScrollTouchActive = false
-      			if DropdownScrollLockTimer then
-      				task.cancel(DropdownScrollLockTimer)
-      			end
-      			DropdownScrollLockTimer = task.delay(0.12, function()
+      			_touchActive = false
+      			task.defer(function()
       				DropdownIsScrolling = false
-      				DropdownScrollLockTimer = nil
+      				_touchTotalDelta = 0
       			end)
       		end
       	end)
       
+      	local SearchText = ""
+
+      	local SearchBG = New("Frame", {
+      		Size = UDim2.new(1, -10, 0, 32),
+      		Position = UDim2.fromOffset(5, 5),
+      		BackgroundTransparency = 0.82,
+      		BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+      	}, {
+      		New("UICorner", { CornerRadius = UDim.new(0, 7) }),
+      		New("UIStroke", {
+      			Transparency = 0.75,
+      			Color = Color3.fromRGB(120, 120, 120),
+      		}),
+      		New("ImageLabel", {
+      			Image = "rbxassetid://10734943674",
+      			Size = UDim2.fromOffset(14, 14),
+      			Position = UDim2.new(0, 9, 0.5, 0),
+      			AnchorPoint = Vector2.new(0, 0.5),
+      			BackgroundTransparency = 1,
+      			ImageTransparency = 0.1,
+      			ImageColor3 = Color3.fromRGB(180, 180, 180),
+      			ZIndex = 5,
+      		}),
+      		New("TextBox", {
+      			Size = UDim2.new(1, -34, 1, 0),
+      			Position = UDim2.fromOffset(28, 0),
+      			BackgroundTransparency = 1,
+      			Text = "",
+      			PlaceholderText = "Search...",
+      			PlaceholderColor3 = Color3.fromRGB(130, 130, 130),
+      			TextSize = 13,
+      			Font = Enum.Font.GothamMedium,
+      			TextXAlignment = Enum.TextXAlignment.Left,
+      			TextYAlignment = Enum.TextYAlignment.Center,
+      			ClearTextOnFocus = false,
+      			TextColor3 = Color3.fromRGB(235, 235, 235),
+      			ZIndex = 5,
+      			[game:GetService("RunService"):IsStudio() and "Name" or "Name"] = "SearchBox",
+      		}),
+      	})
+
+      	local SearchBox = SearchBG:FindFirstChildOfClass("TextBox")
+
+      	DropdownScrollFrame.Position = UDim2.fromOffset(3, 44)
+      	DropdownScrollFrame.Size = UDim2.new(1, -6, 1, -50)
+
+      	SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+      		SearchText = string.lower(SearchBox.Text or "")
+      		Dropdown:BuildDropdownList()
+      	end)
+
       	local DropdownHolderFrame = New("Frame", {
-      		Size = UDim2.fromScale(1, 0.85),
+      		Size = UDim2.fromScale(1, 1),
+      		ClipsDescendants = true,
       		ThemeTag = {
       			BackgroundColor3 = "DropdownHolder",
       		},
       	}, {
+      		SearchBG,
       		DropdownScrollFrame,
       		New("UICorner", {
-      			CornerRadius = UDim.new(0, 7),
+      			CornerRadius = UDim.new(0, 8),
       		}),
       		New("UIStroke", {
+      			Thickness = 1,
       			ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
       			ThemeTag = {
       				Color = "DropdownBorder",
       			},
       		}),
-      		New("ImageLabel", {
-      			BackgroundTransparency = 1,
-      			Image = "http://www.roblox.com/asset/?id=5554236805",
-      			ScaleType = Enum.ScaleType.Slice,
-      			SliceCenter = Rect.new(23, 23, 277, 277),
-      			Size = UDim2.fromScale(1, 1) + UDim2.fromOffset(30, 30),
-      			Position = UDim2.fromOffset(-15, -15),
-      			ImageColor3 = Color3.fromRGB(0, 0, 0),
-      			ImageTransparency = 0.1,
-      		}),
       	})
-        local SearchText = ""
-
-        local SearchBG = New("Frame", {
-            Size = UDim2.new(1, -10, 0, 28),
-            Position = UDim2.fromOffset(5, 5),
-            BackgroundTransparency = 0.85,
-            BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-            Parent = DropdownHolderFrame,
-        }, {
-            New("UICorner", { CornerRadius = UDim.new(0, 6) }),
-            New("UIStroke", {
-                Transparency = 0.8,
-                Color = Color3.fromRGB(120, 120, 120),
-            }),
-        })
-
-        local SearchIcon = New("ImageLabel", {
-            Image = "rbxassetid://10734943674",
-            Size = UDim2.fromOffset(13, 13),
-            Position = UDim2.new(0, 8, 0.5, 0),
-            AnchorPoint = Vector2.new(0, 0.5),
-            BackgroundTransparency = 1,
-            ImageTransparency = 0.1,
-            ImageColor3 = Color3.fromRGB(180, 180, 180),
-            Parent = SearchBG,
-            ZIndex = 5,
-        })
-
-        local SearchBox = New("TextBox", {
-            Size = UDim2.new(1, -33, 1, 0),
-            Position = UDim2.fromOffset(25, 0),
-            BackgroundTransparency = 1,
-            Text = "",
-            PlaceholderText = "Search...",
-            PlaceholderColor3 = Color3.fromRGB(130, 130, 130),
-            TextSize = 13,
-            Font = Enum.Font.GothamMedium,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Center,
-            ClearTextOnFocus = false,
-            TextColor3 = Color3.fromRGB(235, 235, 235),
-            Parent = SearchBG,
-            ZIndex = 5,
-        })
-
-        DropdownScrollFrame.Position = UDim2.fromOffset(5, 38)
-        DropdownScrollFrame.Size = UDim2.new(1, -5, 1, -43)
-
-        SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-            SearchText = string.lower(SearchBox.Text or "")
-            Dropdown:BuildDropdownList()
-        end)
 
       	local DropdownHolderCanvas = New("Frame", {
-    BackgroundTransparency = 1,
-    Size = UDim2.fromOffset(220, 240),
-    Parent = self.Library.GUI,
-    Visible = false,
-}, {
-    DropdownHolderFrame,
-    New("UISizeConstraint", {
-        MinSize = Vector2.new(self.Library.DropdownScrollConfig and self.Library.DropdownScrollConfig.MinWidth or 200, 0),
-        MaxSize = Vector2.new(self.Library.DropdownScrollConfig and self.Library.DropdownScrollConfig.MaxWidth or 480, self.Library.DropdownScrollConfig and self.Library.DropdownScrollConfig.MaxHeight or 440),
-    }),
-})
+      		BackgroundTransparency = 1,
+      		Size = UDim2.fromOffset(180, 200),
+      		Parent = self.Library.GUI,
+      		Visible = false,
+      		ZIndex = 10,
+      	}, {
+      		DropdownHolderFrame,
+      		New("UISizeConstraint", {
+      			MinSize = Vector2.new(160, 80),
+      			MaxSize = Vector2.new(420, 400),
+      		}),
+      	})
       	table.insert(Library.OpenFrames, DropdownHolderCanvas)
       
       	local function RecalculateListPosition()
-      		local vp = game:GetService("Workspace").CurrentCamera.ViewportSize
+      		local Camera = game:GetService("Workspace").CurrentCamera
+      		local vp = Camera.ViewportSize
       		local btnPos = DropdownInner.AbsolutePosition
       		local btnSize = DropdownInner.AbsoluteSize
-      		local listSize = DropdownHolderCanvas.AbsoluteSize
+      		local listW = DropdownHolderCanvas.AbsoluteSize.X
+      		local listH = DropdownHolderCanvas.AbsoluteSize.Y
+
       		local margin = 6
 
       		local posX = btnPos.X
-      		local posY = btnPos.Y + btnSize.Y + 2
+      		local posY = btnPos.Y + btnSize.Y + 4
 
-      		if posX + listSize.X > vp.X - margin then
-      			posX = vp.X - listSize.X - margin
+      		if posX + listW > vp.X - margin then
+      			posX = vp.X - listW - margin
       		end
       		if posX < margin then posX = margin end
 
       		local spaceBelow = vp.Y - posY - margin
       		local spaceAbove = btnPos.Y - margin
 
-      		if listSize.Y > spaceBelow then
-      			if spaceAbove >= listSize.Y then
-      				posY = btnPos.Y - listSize.Y - 2
-      			else
-      				if spaceAbove > spaceBelow then
-      					posY = margin
-      				else
-      					posY = math.min(posY, vp.Y - listSize.Y - margin)
-      				end
-      			end
+      		if spaceBelow < listH and spaceAbove > spaceBelow then
+      			posY = math.max(margin, btnPos.Y - listH - 4)
+      		end
+
+      		if posY + listH > vp.Y - margin then
+      			posY = vp.Y - listH - margin
       		end
       		if posY < margin then posY = margin end
-      		if posY + listSize.Y > vp.Y - margin then
-      			posY = vp.Y - listSize.Y - margin
-      		end
 
-      		DropdownHolderCanvas.Position = UDim2.fromOffset(math.round(posX), math.round(posY))
+      		DropdownHolderCanvas.Position = UDim2.fromOffset(posX, posY)
       	end
-
+      
       	local ListSizeX = 0
       	local function RecalculateListSize()
-      		local vp = game:GetService("Workspace").CurrentCamera.ViewportSize
-      		local dsc = self.Library.DropdownScrollConfig
-      		local cfgMaxH = dsc and dsc.MaxHeight or 440
-      		local MaxHeight = math.min(vp.Y * 0.55, cfgMaxH)
-      		if #Dropdown.Values > 10 then
-      			DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, MaxHeight)
-      		else
-      			local ContentHeight = DropdownListLayout.AbsoluteContentSize.Y + 52
-      			DropdownHolderCanvas.Size = UDim2.fromOffset(ListSizeX, math.min(ContentHeight, MaxHeight))
-      		end
+      		local Camera = game:GetService("Workspace").CurrentCamera
+      		local vp = Camera.ViewportSize
+      		local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+      		local maxH = math.floor(vp.Y * (isMobile and 0.42 or 0.48))
+      		local minW = isMobile and 180 or 160
+      		local w = math.max(minW, math.min(ListSizeX, vp.X - 20))
+      		local contentH = DropdownListLayout.AbsoluteContentSize.Y + 52
+      		local h = math.min(contentH, maxH)
+      		h = math.max(h, 80)
+      		DropdownHolderCanvas.Size = UDim2.fromOffset(w, h)
       	end
       
       	local function RecalculateCanvasSize()
@@ -3723,13 +3693,18 @@ local ClosureBindings = {
       			Input.UserInputType == Enum.UserInputType.MouseButton1
       			or Input.UserInputType == Enum.UserInputType.Touch
       		then
-      			local AbsPos, AbsSize = DropdownHolderFrame.AbsolutePosition, DropdownHolderFrame.AbsoluteSize
-      			if
-      				Mouse.X < AbsPos.X
-      				or Mouse.X > AbsPos.X + AbsSize.X
-      				or Mouse.Y < (AbsPos.Y - 20 - 1)
-      				or Mouse.Y > AbsPos.Y + AbsSize.Y
-      			then
+      			if not Dropdown.Opened then return end
+      			local px = Input.Position.X
+      			local py = Input.Position.Y
+      			local AbsPos = DropdownHolderCanvas.AbsolutePosition
+      			local AbsSize = DropdownHolderCanvas.AbsoluteSize
+      			local btnPos = DropdownInner.AbsolutePosition
+      			local btnSize = DropdownInner.AbsoluteSize
+      			local insideList = px >= AbsPos.X and px <= AbsPos.X + AbsSize.X
+      				and py >= AbsPos.Y and py <= AbsPos.Y + AbsSize.Y
+      			local insideBtn = px >= btnPos.X and px <= btnPos.X + btnSize.X
+      				and py >= btnPos.Y and py <= btnPos.Y + btnSize.Y
+      			if not insideList and not insideBtn then
       				Dropdown:Close()
       			end
       		end
@@ -3744,18 +3719,15 @@ local ClosureBindings = {
 
       		Dropdown.Opened = true
       		ScrollFrame.ScrollingEnabled = false
+      		RecalculateListSize()
+      		RecalculateListPosition()
       		DropdownHolderCanvas.Visible = true
-      		TweenService:Create(
-      			DropdownHolderFrame,
-      			TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-      			{ Size = UDim2.fromScale(1, 1) }
-      		):Play()
+      		DropdownHolderFrame.Size = UDim2.fromScale(1, 1)
       	end
       
       	function Dropdown:Close()
       		Dropdown.Opened = false
       		ScrollFrame.ScrollingEnabled = true
-      		DropdownHolderFrame.Size = UDim2.fromScale(1, 0.6)
       		DropdownHolderCanvas.Visible = false
       		if Library.OpenDropdown == Dropdown then
       			Library.OpenDropdown = nil
@@ -3927,7 +3899,7 @@ local ClosureBindings = {
 
       			Button.InputChanged:Connect(function(Input)
       				if Input.UserInputType == Enum.UserInputType.Touch and BtnTouchStart then
-      					if (Input.Position - BtnTouchStart).Magnitude > 6 then
+      					if (Input.Position - BtnTouchStart).Magnitude > 10 then
       						BtnTouchMoved = true
       						SetBackTransparency(Selected and 0.89 or 1)
       					end
@@ -3943,10 +3915,13 @@ local ClosureBindings = {
       				end
       			end)
 
-
       			Button.InputEnded:Connect(function(Input)
       				if Input.UserInputType == Enum.UserInputType.Touch then
-      					if not BtnTouchMoved and not DropdownIsScrolling then
+      					local didScroll = BtnTouchMoved or DropdownIsScrolling
+      					BtnTouchStart = nil
+      					BtnTouchMoved = false
+      					BtnTouchActive = false
+      					if not didScroll then
       						local Try = not Selected
       						if Dropdown:GetActiveValues() == 1 and not Try and not Config.AllowNull then
       							SetBackTransparency(Selected and 0.89 or 1)
@@ -3969,12 +3944,8 @@ local ClosureBindings = {
       					else
       						SetBackTransparency(Selected and 0.89 or 1)
       					end
-      					BtnTouchStart = nil
-      					BtnTouchMoved = false
-      					BtnTouchActive = false
       				end
       			end)
-
       
       			Table:UpdateButton()
       			Dropdown:Display()
@@ -4535,6 +4506,8 @@ local ClosureBindings = {
 				SliderRail,
 			})
 
+			-- คำนวณค่าจากตำแหน่ง X โดยอ้างกับ "เส้น Slider ทั้งเส้น" (SliderInner)
+			-- ไม่ใช่ SliderRail ที่เป็นแค่พื้นที่ในกรอบ (เดิมอ้างผิดตัว ทำให้ปลายสองข้างกดไม่ตรงค่า)
 			local function UpdateFromInputPosition(InputPosition)
 				local AbsPos = SliderInner.AbsolutePosition
 				local AbsSize = SliderInner.AbsoluteSize
@@ -4544,6 +4517,7 @@ local ClosureBindings = {
 
 			local function BeginDrag(Input)
 				Dragging = true
+				-- กดที่ไหนบนเส้นก็ขยับจุดไปที่นั่นทันที (รองรับ "กดค้างแล้วลาก" จากทุกจุดบนเส้น)
 				UpdateFromInputPosition(Input.Position)
 			end
 
@@ -4563,6 +4537,7 @@ local ClosureBindings = {
 				end
 			end)
 
+			-- กดตรงไหนของเส้น (SliderInner ทั้งแถบ) ก็ใช้ได้ทันที ไม่ต้องเล็งจุดเป๊ะๆ
 			Creator.AddSignal(SliderInner.InputBegan, function(Input)
 				if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 					BeginDrag(Input)
@@ -4575,6 +4550,7 @@ local ClosureBindings = {
 				end
 			end)
 
+			-- กันค้าง: ถ้านิ้ว/เมาส์ปล่อยที่ไหนก็ตามบนจอ (รวมถึงหลุดออกนอกแถบระหว่างลาก) ให้เลิกลากด้วย
 			Creator.AddSignal(UserInputService.InputEnded, function(Input)
 				if Dragging and (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
 					EndDrag()
@@ -4651,7 +4627,12 @@ local ClosureBindings = {
 
 			local ToggleCircle = New("ImageLabel", {
 				AnchorPoint = Vector2.new(0, 0.5),
+				-- ปรับขนาดจุดให้พอดีกับความสูงแคปซูล (22px) เว้นขอบเท่ากันทั้งสองด้าน (3px)
+				-- เดิม 18px ทำให้ระยะขอบตอน ON/OFF ไม่เท่ากัน (2px ฝั่งหนึ่ง, 6px อีกฝั่ง)
 				Size = UDim2.fromOffset(16, 16),
+				-- เดิม Position ใช้ -10 ที่แกน Y ร่วมกับ AnchorPoint.Y = 0.5 ทำให้จุดกลม
+				-- เลื่อนขึ้นไปครึ่งหนึ่งอยู่นอกแคปซูล (เห็นเป็นจุดขาวลอยอยู่บนขอบ)
+				-- แก้เป็น 0 ให้จุดอยู่กึ่งกลางแคปซูลแนวตั้งพอดี
 				Position = UDim2.new(0, 3, 0.5, 0),
 				Image = "http://www.roblox.com/asset/?id=12266946128",
 				ImageColor3 = Color3.fromRGB(255, 255, 255),
@@ -4703,6 +4684,12 @@ local ClosureBindings = {
 				Toggle.Value = Value
 
 				Creator.OverrideTag(ToggleBorder, { Color = Toggle.Value and "Accent" or "ToggleSlider" })
+				-- เดิม: ตอนเปิด (ON) ตั้งสีขาวตรงๆ (ImageColor3 = ...) แต่ตัวระบบ Theme
+				-- (Creator.UpdateTheme) จะไล่ทับสีของทุก object ที่ "ลงทะเบียน" ไว้ด้วย ThemeTag
+				-- ทุกครั้งที่มีการสร้าง/รีเฟรชธีมที่ไหนก็ตามในเมนู ทำให้บางจุดขาว บางจุดเทา
+				-- (ตั้งสีตรงๆ ไปก่อน แล้วถูกธีมไล่ทับทีหลังแบบสุ่มจังหวะ)
+				-- แก้โดยให้ตอน ON เลิกลงทะเบียนกับระบบธีมไปเลย (สีขาวจะไม่ถูกทับอีก)
+				-- และตอน OFF ค่อยลงทะเบียนกลับเข้าไปให้สีตาม ThemeSlider ของธีมนั้นๆ ตามปกติ
 				if Toggle.Value then
 					if Creator.Registry[ToggleCircle] then
 						Creator.Registry[ToggleCircle] = nil
